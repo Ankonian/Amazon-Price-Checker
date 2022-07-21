@@ -96,13 +96,15 @@ for search_item in items:
     checkout_button.click()
 
     #click on continue for payment
-    continue_button = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.NAME, 'ppw-widgetEvent:SetPaymentPlanSelectContinueEvent'))
-        )
-    continue_button.click()
+    #continue_button = WebDriverWait(driver, 10).until(
+        #    EC.presence_of_element_located((By.NAME, 'ppw-widgetEvent:SetPaymentPlanSelectContinueEvent'))
+        #)
+    #continue_button.click()
 
     #grab to total price before tax
     price = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.XPATH, '//*[@id="subtotals-marketplace-table"]/tbody/tr[5]/td[2]'))
         )
-    print(price.text)
+    write_cell = sheet1.cell(row=new_price_cell, column=2)
+    write_cell.value = price.text
+    item_price.save("C:/Users/LiLang/Documents/GitHub Repos/Amazon Price Checker/Amazon-Purchase-Automater/item_prices.xlsx")
