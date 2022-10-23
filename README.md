@@ -1,4 +1,4 @@
-# Amazon-Purchase-Automater
+# Amazon-Price-Checker
 Automating amazon purchase using a spreadsheet to gather the total price before and after tax before making the final purchase
 Caution:
 1. Sometimes the link gathering process would break due to Amazon presents their item links inconsistently in their SERP, makes it difficult to locate element using Selenium with my knowledge (not the sharpest tool in the shed)
