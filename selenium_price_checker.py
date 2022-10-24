@@ -12,31 +12,35 @@ import time
 from tkinter import *
 
 
-
-######################################
-#             Main   GUI             #
-# ####################################
-
+#variables to track collected data 
 keywords = []
 productName = []
 productPrice = []
 productRating = []
 numofProductRating = []
 productLink = []
+
+#starting GUI window
 root = Tk()
 root.geometry("750x250")
 
+#function to save all keywords entered
 def saveKeywords():
     newKeyword = entryBox.get()
     keywords.append(newKeyword)
     entryBox.delete(0, END)
 
+#function to search the stored keyword on Amazon
 def searchKeywords():
     keywordsLabel = Label(root, text=keywords)
     keywordsLabel.pack()
     driver = webdriver.Chrome(ChromeDriverManager().install())
-    driver.get("https://www.amazon.com/")
+    
     for keyword in keywords:
+        print()
+        print("Currently searching for " + keyword)
+        print()
+        driver.get("https://www.amazon.com/")
         amazonTextBox = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.ID, "twotabsearchtextbox"))
             )
@@ -80,11 +84,12 @@ def searchKeywords():
             #grabbing product link
             link = item.find_element(By.XPATH, './/a[@class="a-link-normal s-underline-text s-underline-link-text s-link-style a-text-normal"]').get_attribute("href")
             productLink.append(link)
-    print(productName)
-    print(productPrice)
-    print(productRating)
-    print(numofProductRating)
-    print(productLink)
+        print(productName)
+        print(productPrice)
+        print(productRating)
+        print(numofProductRating)
+        print(productLink)
+   
 
 introLabel = Label(root, text="Enter a keyword you wish to search on Amazon:")
 introLabel.grid(row=0, column=0)
