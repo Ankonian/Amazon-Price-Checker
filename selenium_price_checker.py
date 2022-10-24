@@ -8,103 +8,96 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import pandas as pd
 import openpyxl
+import time
+from tkinter import *
 
-#opening and reading the list of items
-items = []
-path = "C:/Users/LiLang/Documents/GitHub Repos/Amazon Price Checker/Amazon-Purchase-Automater/item_prices.xlsx"
-item_price = openpyxl.load_workbook(path)
-sheet1 = item_price.active
-for x in range(2, 7):
-    cell_obj = sheet1.cell(row=x, column=1)
-    items.append(cell_obj.value)
 
-#login infos
-email = "sixreincarnation@gmail.com"
-pw = ":72fZb6kaJDP^67"
 
-driver = webdriver.Chrome(ChromeDriverManager().install())
-driver.get("https://www.amazon.com/")
+######################################
+#             Main   GUI             #
+# ####################################
 
-#login
-login_link = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.ID, "nav-link-accountList"))
-    )
-login_link.click()
-email_login = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.ID, "ap_email"))
-    )
-email_login.send_keys(email)
-email_login.send_keys(Keys.RETURN)
-pw_input = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.ID, "ap_password"))
-    )
-pw_input.send_keys(pw)
-pw_input.send_keys(Keys.RETURN)
+keywords = []
+productName = []
+productPrice = []
+productRating = []
+numofProductRating = []
+productLink = []
+root = Tk()
+root.geometry("750x250")
 
-#loop through each item
-for search_item in items:
-#search for the item
-    new_price_cell = 2
+def saveKeywords():
+    newKeyword = entryBox.get()
+    keywords.append(newKeyword)
+    entryBox.delete(0, END)
+
+def searchKeywords():
+    keywordsLabel = Label(root, text=keywords)
+    keywordsLabel.pack()
+    driver = webdriver.Chrome(ChromeDriverManager().install())
     driver.get("https://www.amazon.com/")
-    shopping_cart = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "nav-cart-count"))
-        )
-    shopping_cart.click()
-    try:
-        delete_item = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, '//*[@id="sc-item-Cdff2b476-f3ff-4541-9d72-e76fca8480f0"]/div[4]/div/div[1]/div/div/div[2]/div[1]/span[2]/span/input'))
-            )
-        delete_item.click()
-    except:
-        pass
-    item_search = WebDriverWait(driver, 10).until(
+    for keyword in keywords:
+        amazonTextBox = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.ID, "twotabsearchtextbox"))
-        )
-    #item_search = driver.find_element_by_id("twotabsearchtextbox")
-    item_search.send_keys(search_item)
-    item_search.send_keys(Keys.RETURN)
+            )
+        amazonTextBox.send_keys(keyword)
+        amazonTextBox.send_keys(Keys.ENTER)
+        items = WebDriverWait(driver,10).until(
+            EC.presence_of_all_elements_located((By.XPATH, '//div[contains(@class, "s-result-item s-asin")]'))
+            )
+        for item in items:
+            #grabbing item name
+            try:
+                itemName = item.find_element(By.XPATH, './/span[@class="a-size-medium a-color-base a-text-normal"]')
+                productName.append(itemName.text)
+            except:
+                itemName = item.find_element(By.XPATH, './/span[@class="a-size-base-plus a-color-base a-text-normal"]')
+                productName.append(itemName.text)
 
-    #grab all clickable links
-    productLinks = []
-    filteredLink = []
-    rawLinks = driver.find_elements_by_tag_name('a')
-    for rawLink in rawLinks:
-        productLinks.append(rawLink.get_attribute('href'))
+            #grabbing item price
+            fullPrice = 0
+            wholePrice = item.find_element(By.CLASS_NAME, 'a-price-whole')
+            fractionPrice = item.find_element(By.CLASS_NAME, 'a-price-fraction')
+            if(wholePrice != [] and fractionPrice != []):
+                fullPrice = wholePrice.text + "." + fractionPrice.text
+            else:
+                fullPrice = 0
+            productPrice.append(fullPrice)
 
-    #filter out links that isn't product listing
-    sub = "/gp/slredirect/picassoRedirect.html/"
-    for s in productLinks:
-        if(s != None):
-            if(sub in s):
-                if(s not in filteredLink):
-                    filteredLink.append(s)
-    print(len(filteredLink))
-    #grab the first item of the list
-    first_item = filteredLink[0]
-    driver.get(first_item)
+            #grabbing item rating and number of ratings
+            starRating = 0
+            numofRating = 0
+            ratingInfos = fractionPrice = item.find_elements(By.XPATH, './/div[@class="a-row a-size-small"]/span')
+            if(ratingInfos != []):
+                starRating = ratingInfos[0].get_attribute('aria-label')
+                numOfRating = ratingInfos[1].get_attribute('aria-label')
+            else:
+                starRating = 0
+                numofRating = 0
+            productRating = starRating
+            numofProductRating = numofRating
 
-    #click on add to cart
-    add_to_cart = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "add-to-cart-button"))
-        )
-    add_to_cart.click()
+            #grabbing product link
+            link = item.find_element(By.XPATH, './/a[@class="a-link-normal s-underline-text s-underline-link-text s-link-style a-text-normal"]').get_attribute("href")
+            productLink.append(link)
+    print(productName)
+    print(productPrice)
+    print(productRating)
+    print(numofProductRating)
+    print(productLink)
 
-    #click on proceed to checkout
-    checkout_button = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "sc-buy-box-ptc-button"))
-        )
-    checkout_button.click()
+introLabel = Label(root, text="Enter a keyword you wish to search on Amazon:")
+introLabel.grid(row=0, column=0)
+introLabel.pack()
 
-    #click on continue for payment
-    #continue_button = WebDriverWait(driver, 10).until(
-        #    EC.presence_of_element_located((By.NAME, 'ppw-widgetEvent:SetPaymentPlanSelectContinueEvent'))
-        #)
-    #continue_button.click()
+entryBox = Entry(root, width = 50)
+entryBox.pack()
 
-    #grab to total price before tax
-    price = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, '//*[@id="subtotals-marketplace-table"]/tbody/tr[5]/td[2]'))
-        )
-    write_cell = sheet1.cell(row=new_price_cell, column=2)
-    write_cell.value = price.text
-    item_price.save("C:/Users/LiLang/Documents/GitHub Repos/Amazon Price Checker/Amazon-Purchase-Automater/item_prices.xlsx")
+saveKeywordButton = Button(root, text = "Save keyword", command=saveKeywords)
+saveKeywordButton.pack()
+
+searchKeywordsButton = Button(root, text = "Search", command=searchKeywords)
+searchKeywordsButton.pack()
+
+root.mainloop()
+
