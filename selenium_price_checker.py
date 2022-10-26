@@ -12,15 +12,11 @@ import time
 from tkinter import *
 
 
-#variables to track collected data 
-keywords = []
-productName = []
-productPrice = []
-productRating = []
-numofProductRating = []
-productLink = []
-wb = Workbook()
 
+keywords = []
+
+#starting a new workbook
+wb = Workbook()
 
 #starting GUI window
 root = Tk()
@@ -50,15 +46,18 @@ def save_search_to_spreadsheet(keyword, names, prices, ratings, num_of_ratings, 
     wb.save('product_infos.xlsx')
 
 #function to search the stored keyword on Amazon
-def searchKeywords():
+def searchKeywords(keywords):
     keywordsLabel = Label(root, text=keywords)
     keywordsLabel.pack()
     driver = webdriver.Chrome(ChromeDriverManager().install())
     
     for keyword in keywords:
-        print()
         print("Currently searching for " + keyword)
-        print()
+        productName = []
+        productPrice = []
+        productRating = []
+        numofProductRating = []
+        productLink = []
         driver.get("https://www.amazon.com/")
         amazonTextBox = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.ID, "twotabsearchtextbox"))
@@ -121,6 +120,9 @@ def searchKeywords():
     if('Sheet' in wb.sheetnames):
         wb.remove(wb['Sheet'])
         wb.save('product_infos.xlsx')
+    print("Searching complete, spreadsheet saved")
+    search_complete_label = Label(root, text="Searching complete, spreadsheet saved")
+    search_complete_label.pack()
     
 
 introLabel = Label(root, text="Enter a keyword you wish to search on Amazon:")
@@ -133,8 +135,7 @@ entryBox.pack()
 saveKeywordButton = Button(root, text = "Save keyword", command=saveKeywords)
 saveKeywordButton.pack()
 
-searchKeywordsButton = Button(root, text = "Search", command=searchKeywords)
+searchKeywordsButton = Button(root, text = "Search", command=lambda: searchKeywords(keywords))
 searchKeywordsButton.pack()
 
 root.mainloop()
-
