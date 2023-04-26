@@ -1,141 +1,110 @@
-from multiprocessing.connection import wait
 from selenium import webdriver
-from webdriver_manager.chrome import ChromeDriverManager
-import selenium
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-import openpyxl
-from openpyxl import Workbook
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
 import time
-from tkinter import *
+import pandas as pd
+import tkinter as tk
+from tkinter import ttk
 
+# function to perform the search and compile the results
+def search_amazon():
+    # get the search term from the entry field
+    search_term = search_entry.get()
 
+    # set up options for Chrome webdriver
+    options = Options()
+    options.add_argument("--headless")  # run Chrome in headless mode (without a window)
 
-keywords = []
-
-#starting a new workbook
-wb = Workbook()
-
-#starting GUI window
-root = Tk()
-root.geometry("750x250")
-
-#function to save all keywords entered
-def saveKeywords():
-    newKeyword = entryBox.get()
-    if newKeyword != '':
-        keywords.append(newKeyword)
-    entryBox.delete(0, END)
-
-#saving the search result to product_info spreadsheet
-def save_search_to_spreadsheet(keyword, names, prices, ratings, num_of_ratings, links):
-    current_sheet = wb.create_sheet(keyword)
-    current_sheet.append(["Product Name", "Price", "Star rating", "Number of Ratings", "Product Link"])
-    for x in range(0, len(names)):
-        current_sheet.cell(row = 2 + x, column = 1).value = names[x]
-    for x in range(0, len(prices)):
-        current_sheet.cell(row = 2 + x, column = 2).value = prices[x]
-    for x in range(0, len(ratings)):
-        current_sheet.cell(row = 2 + x, column = 3).value = ratings[x]
-    for x in range(0, len(num_of_ratings)):
-        current_sheet.cell(row = 2 + x, column = 4).value = num_of_ratings[x]
-    for x in range(0, len(links)):
-        current_sheet.cell(row = 2 + x, column = 5).value = links[x]
-    wb.save('product_infos.xlsx')
-
-#function to search the stored keyword on Amazon
-def searchKeywords(keywords):
-    keywordsLabel = Label(root, text=keywords)
-    keywordsLabel.pack()
+    # install a new chromedriver if not present
     driver = webdriver.Chrome(ChromeDriverManager().install())
-    
-    for keyword in keywords:
-        print("Currently searching for " + keyword)
-        productName = []
-        productPrice = []
-        productRating = []
-        numofProductRating = []
-        productLink = []
-        driver.get("https://www.amazon.com/")
-        amazonTextBox = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "twotabsearchtextbox"))
-            )
-        amazonTextBox.send_keys(keyword)
-        amazonTextBox.send_keys(Keys.ENTER)
-        items = WebDriverWait(driver,10).until(
-            EC.presence_of_all_elements_located((By.XPATH, '//div[contains(@class, "s-result-item s-asin")]'))
-            )
-        for item in items:
 
-            #grabbing item name
-            #The try statement is here because Amazon decides to be fancy on random products and user different css styles, thus we need to try different locators
-            try:
-                itemName = item.find_element(By.XPATH, './/span[@class="a-size-medium a-color-base a-text-normal"]')
-                productName.append(itemName.text)
-            except:
-                itemName = item.find_element(By.XPATH, './/span[@class="a-size-base-plus a-color-base a-text-normal"]')
-                productName.append(itemName.text)
+    # navigate to the Amazon home page
+    driver.get("https://www.amazon.com/")
 
-            #grabbing item price
-            fullPrice = 0
-            try:
-                wholePrice = item.find_element(By.XPATH, './/span[@class="a-price-whole"]')
-                fractionPrice = item.find_element(By.XPATH, './/span[@class="a-price-fraction"]')
-            except:
-                fullPrice = "not shown on search"
-            if(wholePrice != [] and fractionPrice != [] and fullPrice != "not shown on search"):
-                fullPrice = wholePrice.text + "." + fractionPrice.text
-            else:
-                fullPrice = "not shown on search"
-            productPrice.append(fullPrice)
+    # find the search bar and enter the search term
+    search_bar = driver.find_element_by_id("twotabsearchtextbox")
+    search_bar.send_keys(search_term)
+    search_bar.send_keys(Keys.RETURN)
 
-            #grabbing item rating and number of ratings
-            starRating = 0
-            numofRating = 0
-            ratingInfos  = item.find_elements(By.XPATH, './/div[@class="a-row a-size-small"]/span')
-            if(ratingInfos != []):
-                starRating = ratingInfos[0].get_attribute('aria-label')
-                #numOfRating = ratingInfos[1].get_attribute('aria-label')
-            else:
-                starRating = 0
-                numofRating = 0
-            productRating.append(starRating)
-            for x in ratingInfos:
-                if x.text != '':
-                    numofProductRating.append(x.text)
+    # wait for the search results to load
+    time.sleep(2)
 
-            #grabbing product link
-            link = item.find_element(By.XPATH, './/a[@class="a-link-normal s-underline-text s-underline-link-text s-link-style a-text-normal"]').get_attribute("href")
-            productLink.append(link)
+    # find all the product listings on the page
+    listings = driver.find_elements_by_xpath("//div[@data-component-type='s-search-result']")
 
-        #call the save function to save search results to spreadsheet
-        save_search_to_spreadsheet(keyword, productName, productPrice, productRating, numofProductRating, productLink)
+    # initialize an empty list to hold the search results
+    results = []
 
-    #clearing the saved keywords after searching and saving is complete
-    keywords = []
+   # loop through each listing and extract relevant information
+    for listing in listings:
+        # extract product title
+        name = listing.find_element_by_tag_name('h2').text.strip()
+        title_element = listing.find_element_by_tag_name('h2')
+        link = title_element.find_element_by_tag_name('a').get_attribute('href')
 
-    #remove the empty sheet
-    if('Sheet' in wb.sheetnames):
-        wb.remove(wb['Sheet'])
-        wb.save('product_infos.xlsx')
-    print("Searching complete, spreadsheet saved")
-    search_complete_label = Label(root, text="Searching complete, spreadsheet saved")
-    search_complete_label.pack()
-    
+        # extract product price, if available
+        try:
+            price = listing.find_element_by_xpath(".//span[@class='a-price-whole']").text
+            price_fraction = listing.find_element_by_xpath(".//span[@class='a-price-fraction']").text
+            price = f"{price}.{price_fraction}"
+        except:
+            price = ""
 
-introLabel = Label(root, text="Enter a keyword you wish to search on Amazon:")
-introLabel.grid(row=0, column=0)
-introLabel.pack()
+        # extract product rating, if available
+        try:
+            rating = listing.find_element_by_xpath(".//span[contains(@class,'a-icon-alt')]") \
+                            .get_attribute('innerHTML').strip()
+        except:
+            rating = ""
+        
+        # extract number of ratings, if available
+        try:
+            num_ratings = listing.find_element_by_xpath(".//span[@class='a-size-base']") \
+                                .text.split()[0]
+        except:
+            num_ratings = ""
 
-entryBox = Entry(root, width = 50)
-entryBox.pack()
+        # add the extracted information to the results list
+        results.append({
+            'Product Name': name,
+            'Product Link': link,
+            'Price': price,
+            'Rating': rating,
+            'Number of Rating': num_ratings
+        })
 
-saveKeywordButton = Button(root, text = "Save keyword", command=saveKeywords)
-saveKeywordButton.pack()
 
-searchKeywordsButton = Button(root, text = "Search", command=lambda: searchKeywords(keywords))
-searchKeywordsButton.pack()
+    # create a pandas DataFrame from the results list
+    df = pd.DataFrame(results)
 
+    # save the DataFrame to an Excel file
+    filename = f"{search_term}_results.xlsx"
+    df.to_excel(filename, index=False)
+
+    # update the status label to indicate where the results were saved
+    status_label.config(text=f"Search results saved to {filename}")
+
+    # close the webdriver
+    driver.quit()
+
+# create the main window
+root = tk.Tk()
+root.title("Amazon Search")
+
+# create a label and entry field for the search term
+search_label = ttk.Label(root, text="Enter a search term:")
+search_label.pack(pady=5)
+search_entry = ttk.Entry(root, width=40)
+search_entry.pack(pady=5)
+
+# create a button to perform the search
+search_button = ttk.Button(root, text="Search", command=search_amazon)
+search_button.pack(pady=5)
+
+# create a label to display the status of the search
+status_label = ttk.Label(root, text="")
+status_label.pack(pady=5)
+
+# start the main event loop
 root.mainloop()
