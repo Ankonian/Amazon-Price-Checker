@@ -1,4 +1,5 @@
 from selenium import webdriver
+from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
@@ -17,13 +18,13 @@ def search_amazon():
     options.add_argument("--headless")  # run Chrome in headless mode (without a window)
 
     # install a new chromedriver if not present
-    driver = webdriver.Chrome(ChromeDriverManager().install())
+    driver = webdriver.Chrome()
 
     # navigate to the Amazon home page
     driver.get("https://www.amazon.com/")
 
     # find the search bar and enter the search term
-    search_bar = driver.find_element_by_id("twotabsearchtextbox")
+    search_bar = driver.find_element(By.ID, "twotabsearchtextbox")
     search_bar.send_keys(search_term)
     search_bar.send_keys(Keys.RETURN)
 
@@ -31,7 +32,7 @@ def search_amazon():
     time.sleep(2)
 
     # find all the product listings on the page
-    listings = driver.find_elements_by_xpath("//div[@data-component-type='s-search-result']")
+    listings = driver.find_elements(By.XPATH, "//div[@data-component-type='s-search-result']")
 
     # initialize an empty list to hold the search results
     results = []
@@ -39,28 +40,28 @@ def search_amazon():
    # loop through each listing and extract relevant information
     for listing in listings:
         # extract product title
-        name = listing.find_element_by_tag_name('h2').text.strip()
-        title_element = listing.find_element_by_tag_name('h2')
-        link = title_element.find_element_by_tag_name('a').get_attribute('href')
+        name = listing.find_element(By.TAG_NAME, 'h2').text.strip()
+        title_element = listing.find_element(By.TAG_NAME, 'h2')
+        link = title_element.find_element(By.TAG_NAME, 'a').get_attribute('href')
 
         # extract product price, if available
         try:
-            price = listing.find_element_by_xpath(".//span[@class='a-price-whole']").text
-            price_fraction = listing.find_element_by_xpath(".//span[@class='a-price-fraction']").text
+            price = listing.find_element(By.XPATH, ".//span[@class='a-price-whole']").text
+            price_fraction = listing.find_element(By.XPATH, ".//span[@class='a-price-fraction']").text
             price = f"{price}.{price_fraction}"
         except:
             price = ""
 
         # extract product rating, if available
         try:
-            rating = listing.find_element_by_xpath(".//span[contains(@class,'a-icon-alt')]") \
+            rating = listing.find_element(By.XPATH, ".//span[contains(@class,'a-icon-alt')]") \
                             .get_attribute('innerHTML').strip()
         except:
             rating = ""
         
         # extract number of ratings, if available
         try:
-            num_ratings = listing.find_element_by_xpath(".//span[@class='a-size-base']") \
+            num_ratings = listing.find_element(By.XPATH, ".//span[@class='a-size-base']") \
                                 .text.split()[0]
         except:
             num_ratings = ""
